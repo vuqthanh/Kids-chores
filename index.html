@@ -110,16 +110,26 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, orderBy, enableNetwork, disableNetwork } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "your-api-key", authDomain: "your-auth-domain", projectId: "your-project-id" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'chore-tracker-default';
-        const GOAL = 1000;
-        const CHORE_CATEGORIES = {
-            "Reading": { multiplier: 1.0, icon: '📖' },
-            "Writing": { multiplier: 1.0, icon: '✍️' },
-            "Math": { multiplier: 1.0, icon: '🧮' },
-            "Helping Parents": { multiplier: 1.5, icon: '🤝' },
-            "Cleaning": { multiplier: 1.5, icon: '🧹' },
-        };
+        const firebaseConfig = {
+  apiKey: "AIzaSyDTH_k0SWT1gDNH96Y6fzlG7V8tJOCrLBo",
+  authDomain: "choretracker-32c82.firebaseapp.com",
+  projectId: "choretracker-32c82",
+  storageBucket: "choretracker-32c82.firebasestorage.app",
+  messagingSenderId: "616117334761",
+  appId: "1:616117334761:web:3bb68d50e5f7397e9d7678",
+  measurementId: "G-55FBE4F2BX"
+};
+
+const appId = 'choretracker'; // Add this line ✅
+const GOAL = 1000;
+const CHORE_CATEGORIES = {
+  "Reading": { multiplier: 1.0, icon: '📖' },
+  "Writing": { multiplier: 1.0, icon: '✍️' },
+  "Math": { multiplier: 1.0, icon: '🧮' },
+  "Helping Parents": { multiplier: 1.5, icon: '🤝' },
+  "Cleaning": { multiplier: 1.5, icon: '🧹' },
+};
+
 
         // --- DOM ELEMENTS ---
         const totalPointsEl = document.getElementById('total-points');

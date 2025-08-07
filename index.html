@@ -177,7 +177,7 @@
             if (user) {
                 // User is signed in.
                 console.log("User authenticated. UID:", user.uid);
-                setupRealtimeListener(user.uid);
+                setupRealtimeListener(); // removed user.uid
             } else {
                 // User is signed out.
                 console.log("User is not authenticated.");
@@ -185,6 +185,7 @@
                 authenticateUser();
             }
         });
+
 
         // --- UI SETUP ---
         function populateCategories() {
@@ -200,11 +201,10 @@
         }
 
         // --- FIRESTORE REALTIME LISTENER ---
-        function setupRealtimeListener(userId) {
-            // ✅ Simplified data path. Storing chores under a "chores" collection.
+        function setupRealtimeListener() {
             const choresCollectionRef = collection(db, "chores");
             const q = query(choresCollectionRef, orderBy("timestamp", "desc"));
-
+        
             onSnapshot(q, (snapshot) => {
                 loadingMessageEl.style.display = 'none';
                 const chores = [];
@@ -217,6 +217,7 @@
                 activityLogEl.innerHTML = `<p class="text-red-500 text-center">Could not load activities. Check console for errors.</p>`;
             });
         }
+
 
         // --- UI UPDATE LOGIC ---
         function updateUI(chores) {
@@ -344,4 +345,5 @@
     </script>
 </body>
 </html>
+
 

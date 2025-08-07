@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chore & Reward Tracker (Local Version)</title>
+    <title>Chore & Reward Tracker (Multi-User)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .progress-bar-inner { transition: width 0.5s ease-in-out; }
         .modal { transition: opacity 0.3s ease; }
     </style>
 </head>
@@ -18,19 +17,24 @@
         
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-blue-600">Chore & Reward Tracker</h1>
-            <p class="text-gray-600 mt-2">Log your activities, earn points, and reach your goal!</p>
+            <p class="text-gray-600 mt-2">Log activities for Tri Anh and Chi!</p>
         </header>
 
         <main>
-            <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
-                <h2 class="text-xl font-semibold mb-4 text-center">Your Progress</h2>
-                <div class="text-center mb-4">
+            <div class="bg-white p-6 rounded-2xl shadow-lg mb-8 text-center">
+                <h2 class="text-xl font-semibold mb-4">Total Progress</h2>
+                <div>
                     <span id="total-points" class="text-5xl font-bold text-green-500">0</span>
-                    <span class="text-xl text-gray-500">/ 1000 points</span>
+                    <span class="text-xl text-gray-500">Total Points</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-6">
-                    <div id="progress-bar" class="progress-bar-inner bg-green-500 h-6 rounded-full text-white text-sm flex items-center justify-center font-semibold" style="width: 0%">
-                        0%
+                <div class="flex justify-around mt-4 text-lg">
+                    <div>
+                        <p class="font-semibold text-blue-600">Tri Anh</p>
+                        <p><span id="tri-anh-points" class="font-bold">0</span> pts</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-pink-600">Chi</p>
+                        <p><span id="chi-points" class="font-bold">0</span> pts</p>
                     </div>
                 </div>
             </div>
@@ -38,6 +42,13 @@
             <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
                 <h2 class="text-xl font-semibold mb-4">Log a New Activity</h2>
                 <form id="chore-form" class="space-y-4">
+                    <div>
+                        <label for="user" class="block text-sm font-medium text-gray-700">Select User</label>
+                        <select id="user" name="user" class="mt-1 block w-full py-3 px-4 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option>Tri Anh</option>
+                            <option>Chi</option>
+                        </select>
+                    </div>
                     <div>
                         <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
                         <select id="category" name="category" class="mt-1 block w-full py-3 px-4 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></select>
@@ -61,20 +72,9 @@
         </main>
 
     </div>
-
-    <div id="goal-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-sm transform transition-all scale-95">
-            <h2 class="text-3xl font-bold text-yellow-500 mb-4">Congratulations!</h2>
-            <p class="text-lg text-gray-700 mb-6">You've reached 1000 points! Time for a special reward!</p>
-            <button id="close-modal" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg">
-                Awesome!
-            </button>
-        </div>
-    </div>
-
+    
     <script>
         // --- CONFIGURATION ---
-        const GOAL = 1000;
         const CHORE_CATEGORIES = {
             "Reading": { multiplier: 1.0, icon: '📖' },
             "Writing": { multiplier: 1.0, icon: '✍️' },
@@ -85,14 +85,14 @@
 
         // --- DOM ELEMENTS ---
         const totalPointsEl = document.getElementById('total-points');
-        const progressBarEl = document.getElementById('progress-bar');
+        const triAnhPointsEl = document.getElementById('tri-anh-points'); // New
+        const chiPointsEl = document.getElementById('chi-points'); // New
+        const userSelect = document.getElementById('user'); // New
         const choreForm = document.getElementById('chore-form');
         const categorySelect = document.getElementById('category');
         const minutesInput = document.getElementById('minutes');
         const activityLogEl = document.getElementById('activity-log');
         const formMessageEl = document.getElementById('form-message');
-        const goalModal = document.getElementById('goal-modal');
-        const closeModalBtn = document.getElementById('close-modal');
 
         let allChores = [];
 
@@ -100,7 +100,6 @@
         function loadChoresFromStorage() {
             const choresJSON = localStorage.getItem('chores');
             allChores = choresJSON ? JSON.parse(choresJSON) : [];
-            // Sort by date, newest first
             allChores.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             updateUI();
         }
@@ -123,13 +122,25 @@
         }
 
         // --- UI UPDATE LOGIC ---
+        // CHANGED: updateUI now calculates and displays points for each user.
         function updateUI() {
-            const totalPoints = allChores.reduce((sum, chore) => sum + chore.points, 0);
-            
+            let totalPoints = 0;
+            let triAnhPoints = 0;
+            let chiPoints = 0;
+
+            allChores.forEach(chore => {
+                if (chore.user === 'Tri Anh') {
+                    triAnhPoints += chore.points;
+                } else if (chore.user === 'Chi') {
+                    chiPoints += chore.points;
+                }
+            });
+
+            totalPoints = triAnhPoints + chiPoints;
+
             totalPointsEl.textContent = Math.round(totalPoints);
-            const progressPercentage = Math.min(100, (totalPoints / GOAL) * 100);
-            progressBarEl.style.width = `${progressPercentage}%`;
-            progressBarEl.textContent = `${Math.round(progressPercentage)}%`;
+            triAnhPointsEl.textContent = Math.round(triAnhPoints);
+            chiPointsEl.textContent = Math.round(chiPoints);
 
             activityLogEl.innerHTML = '';
             if (allChores.length === 0) {
@@ -140,11 +151,12 @@
                     logEntry.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
                     const date = new Date(chore.timestamp).toLocaleDateString();
                     
+                    // CHANGED: Added user's name to the log entry
                     logEntry.innerHTML = `
                         <div class="flex items-center">
                             <span class="text-2xl mr-3">${CHORE_CATEGORIES[chore.category]?.icon || '⭐'}</span>
                             <div>
-                                <p class="font-semibold">${chore.category}</p>
+                                <p class="font-semibold">${chore.user} - ${chore.category}</p>
                                 <p class="text-sm text-gray-500">${chore.minutes} minutes on ${date}</p>
                             </div>
                         </div>
@@ -153,17 +165,15 @@
                     activityLogEl.appendChild(logEntry);
                 });
             }
-
-            if (totalPoints >= GOAL && allChores.length > 0) {
-                showGoalModal();
-            }
         }
 
         // --- FORM HANDLING ---
+        // CHANGED: handleFormSubmit now gets the selected user.
         function handleFormSubmit(e) {
             e.preventDefault();
             formMessageEl.textContent = '';
             
+            const user = userSelect.value; // Get selected user
             const category = categorySelect.value;
             const minutes = parseInt(minutesInput.value, 10);
 
@@ -176,14 +186,14 @@
             const points = minutes * multiplier;
 
             const newChore = {
-                id: Date.now().toString(), // Simple unique ID
+                id: Date.now().toString(),
+                user: user, // Add user to the chore object
                 category,
                 minutes,
                 points,
-                timestamp: new Date().toISOString() // Store date as a standard string
+                timestamp: new Date().toISOString()
             };
             
-            // Add to the start of the array to show newest first
             allChores.unshift(newChore);
             saveChoresToStorage();
             updateUI();
@@ -192,30 +202,12 @@
             formMessageEl.textContent = 'Activity logged successfully!';
             setTimeout(() => formMessageEl.textContent = '', 3000);
         }
-        
-        // --- MODAL LOGIC ---
-        function showGoalModal() {
-            goalModal.classList.remove('hidden');
-            setTimeout(() => {
-                goalModal.classList.remove('opacity-0');
-                goalModal.querySelector('div').classList.remove('scale-95');
-            }, 10);
-        }
-        
-        function hideGoalModal() {
-            goalModal.classList.add('opacity-0');
-            goalModal.querySelector('div').classList.add('scale-95');
-            setTimeout(() => {
-                goalModal.classList.add('hidden');
-            }, 300);
-        }
 
         // --- INITIALIZATION ---
         function init() {
             populateCategories();
             loadChoresFromStorage();
             choreForm.addEventListener('submit', handleFormSubmit);
-            closeModalBtn.addEventListener('click', hideGoalModal);
         }
 
         // Run the app

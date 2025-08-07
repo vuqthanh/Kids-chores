@@ -3,34 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chore & Reward Tracker</title>
+    <title>Chore & Reward Tracker (Local Version)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Chore Tracker">
-    <link rel="apple-touch-icon" href="https://placehold.co/180x180/2563eb/ffffff?text=Chores">
-
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        body { font-family: 'Inter', sans-serif; }
         .progress-bar-inner { transition: width 0.5s ease-in-out; }
         .modal { transition: opacity 0.3s ease; }
-        #offline-indicator {
-            transition: transform 0.3s ease-in-out;
-        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-
-    <div id="offline-indicator" class="fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center p-2 text-sm z-50 transform -translate-y-full">
-        You are offline. Entries will be saved and synced automatically when you're back online.
-    </div>
 
     <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
         
@@ -74,8 +56,7 @@
             <div class="bg-white p-6 rounded-2xl shadow-lg">
                 <h2 class="text-xl font-semibold mb-4">Activity History</h2>
                 <div id="activity-log" class="space-y-3 max-h-96 overflow-y-auto">
-                    <p class="text-gray-500 text-center" id="loading-message">Loading activities...</p>
-                </div>
+                    </div>
             </div>
         </main>
 
@@ -91,26 +72,8 @@
         </div>
     </div>
 
-    <script type="module">
-        // Firebase  Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // ✅ ADDED enablePersistence for automatic offline support
-        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, orderBy, enablePersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // --- CONFIGURATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyDTH_k0SWT1gDNH96Y6fzlG7V8tJOCrLBo",
-            authDomain: "choretracker-32c82.firebaseapp.com",
-            projectId: "choretracker-32c82",
-            storageBucket: "choretracker-32c82.firebasestorage.app",
-            messagingSenderId: "616117334761",
-            appId: "1:616117334761:web:3bb68d50e5f7397e9d7678",
-            measurementId: "G-55FBE4F2BX"
-        };
-        
-        // This seems unused, but keeping it in case you need it later. Let's simplify the data path.
-        // const appId = 'choretracker'; 
         const GOAL = 1000;
         const CHORE_CATEGORIES = {
             "Reading": { multiplier: 1.0, icon: '📖' },
@@ -120,7 +83,6 @@
             "Cleaning": { multiplier: 1.5, icon: '🧹' },
         };
 
-
         // --- DOM ELEMENTS ---
         const totalPointsEl = document.getElementById('total-points');
         const progressBarEl = document.getElementById('progress-bar');
@@ -128,64 +90,24 @@
         const categorySelect = document.getElementById('category');
         const minutesInput = document.getElementById('minutes');
         const activityLogEl = document.getElementById('activity-log');
-        const loadingMessageEl = document.getElementById('loading-message');
         const formMessageEl = document.getElementById('form-message');
         const goalModal = document.getElementById('goal-modal');
         const closeModalBtn = document.getElementById('close-modal');
-        const offlineIndicator = document.getElementById('offline-indicator');
 
-        // --- FIREBASE INITIALIZATION ---
-        let db, auth;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            // ✅ ENABLE FIREBASE OFFLINE PERSISTENCE
-            enablePersistence(db)
-              .then(() => console.log("Offline persistence enabled"))
-              .catch((err) => console.error("Error enabling offline persistence: ", err));
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
-            loadingMessageEl.textContent = "Error connecting to the database.";
-        }
-        
-        // --- PWA SERVICE WORKER (Simplified) ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // ✅ Using the simple, external sw.js file
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registered successfully', reg))
-                    .catch(err => console.error('Service Worker registration failed', err));
-            });
+        let allChores = [];
+
+        // --- DATA HANDLING (USING localStorage) ---
+        function loadChoresFromStorage() {
+            const choresJSON = localStorage.getItem('chores');
+            allChores = choresJSON ? JSON.parse(choresJSON) : [];
+            // Sort by date, newest first
+            allChores.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            updateUI();
         }
 
-        // --- AUTHENTICATION ---
-        async function authenticateUser() {
-            try {
-                // ✅ Simplified to always use anonymous sign-in
-                await signInAnonymously(auth);
-                // The onAuthStateChanged listener handles what to do next
-            } catch (error) {
-                console.error("Anonymous authentication failed:", error);
-                loadingMessageEl.textContent = "Authentication failed. Please check Firebase settings.";
-            }
+        function saveChoresToStorage() {
+            localStorage.setItem('chores', JSON.stringify(allChores));
         }
-        
-        // --- AUTH STATE LISTENER ---
-        // This is a more robust way to handle login state
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // User is signed in.
-                console.log("User authenticated. UID:", user.uid);
-                setupRealtimeListener(); // removed user.uid
-            } else {
-                // User is signed out.
-                console.log("User is not authenticated.");
-                // We can attempt to sign them in again
-                authenticateUser();
-            }
-        });
-
 
         // --- UI SETUP ---
         function populateCategories() {
@@ -200,28 +122,9 @@
             }
         }
 
-        // --- FIRESTORE REALTIME LISTENER ---
-        function setupRealtimeListener() {
-            const choresCollectionRef = collection(db, "chores");
-            const q = query(choresCollectionRef, orderBy("timestamp", "desc"));
-        
-            onSnapshot(q, (snapshot) => {
-                loadingMessageEl.style.display = 'none';
-                const chores = [];
-                snapshot.forEach(doc => {
-                    chores.push({ id: doc.id, ...doc.data() });
-                });
-                updateUI(chores);
-            }, (error) => {
-                console.error("Error fetching chores:", error);
-                activityLogEl.innerHTML = `<p class="text-red-500 text-center">Could not load activities. Check console for errors.</p>`;
-            });
-        }
-
-
         // --- UI UPDATE LOGIC ---
-        function updateUI(chores) {
-            const totalPoints = chores.reduce((sum, chore) => sum + chore.points, 0);
+        function updateUI() {
+            const totalPoints = allChores.reduce((sum, chore) => sum + chore.points, 0);
             
             totalPointsEl.textContent = Math.round(totalPoints);
             const progressPercentage = Math.min(100, (totalPoints / GOAL) * 100);
@@ -229,14 +132,13 @@
             progressBarEl.textContent = `${Math.round(progressPercentage)}%`;
 
             activityLogEl.innerHTML = '';
-            if (chores.length === 0) {
+            if (allChores.length === 0) {
                 activityLogEl.innerHTML = `<p class="text-gray-500 text-center">No activities logged yet. Add one above!</p>`;
             } else {
-                chores.forEach(chore => {
+                allChores.forEach(chore => {
                     const logEntry = document.createElement('div');
                     logEntry.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-lg';
-                    // Handle Firestore server timestamp which becomes a Date object
-                    const date = chore.timestamp?.toDate ? chore.timestamp.toDate().toLocaleDateString() : 'a few moments ago';
+                    const date = new Date(chore.timestamp).toLocaleDateString();
                     
                     logEntry.innerHTML = `
                         <div class="flex items-center">
@@ -252,24 +154,18 @@
                 });
             }
 
-            if (totalPoints >= GOAL && chores.length > 0) {
+            if (totalPoints >= GOAL && allChores.length > 0) {
                 showGoalModal();
             }
         }
 
         // --- FORM HANDLING ---
-        async function handleFormSubmit(e) {
+        function handleFormSubmit(e) {
             e.preventDefault();
             formMessageEl.textContent = '';
             
             const category = categorySelect.value;
             const minutes = parseInt(minutesInput.value, 10);
-            const user = auth.currentUser;
-
-            if (!user) {
-                 formMessageEl.textContent = 'You are not signed in. Please wait or refresh.';
-                 return;
-            }
 
             if (isNaN(minutes) || minutes <= 0) {
                 formMessageEl.textContent = 'Please enter a valid number of minutes.';
@@ -280,26 +176,21 @@
             const points = minutes * multiplier;
 
             const newChore = {
+                id: Date.now().toString(), // Simple unique ID
                 category,
                 minutes,
                 points,
-                uid: user.uid, // Store which user created the chore
-                timestamp: serverTimestamp() // Let Firestore generate the timestamp
+                timestamp: new Date().toISOString() // Store date as a standard string
             };
             
-            try {
-                // ✅ Simplified data path
-                const choresCollectionRef = collection(db, "chores");
-                await addDoc(choresCollectionRef, newChore);
-                
-                choreForm.reset();
-                formMessageEl.textContent = 'Activity logged successfully!';
-                setTimeout(() => formMessageEl.textContent = '', 3000);
-            } catch (error) {
-                console.error("Error adding document: ", error);
-                formMessageEl.classList.add('text-red-600');
-                formMessageEl.textContent = 'Error saving. Data will sync when back online.';
-            }
+            // Add to the start of the array to show newest first
+            allChores.unshift(newChore);
+            saveChoresToStorage();
+            updateUI();
+            
+            choreForm.reset();
+            formMessageEl.textContent = 'Activity logged successfully!';
+            setTimeout(() => formMessageEl.textContent = '', 3000);
         }
         
         // --- MODAL LOGIC ---
@@ -319,31 +210,16 @@
             }, 300);
         }
 
-        // --- ONLINE/OFFLINE STATUS HANDLING ---
-        function updateOnlineStatus() {
-            if (navigator.onLine) {
-                offlineIndicator.classList.add('-translate-y-full');
-            } else {
-                offlineIndicator.classList.remove('-translate-y-full');
-            }
-        }
-
         // --- INITIALIZATION ---
         function init() {
             populateCategories();
-            // authenticateUser() is now called by the onAuthStateChanged listener
+            loadChoresFromStorage();
             choreForm.addEventListener('submit', handleFormSubmit);
             closeModalBtn.addEventListener('click', hideGoalModal);
-            window.addEventListener('online', updateOnlineStatus);
-            window.addEventListener('offline', updateOnlineStatus);
-            updateOnlineStatus();
         }
 
         // Run the app
         init();
-
     </script>
 </body>
 </html>
-
-
